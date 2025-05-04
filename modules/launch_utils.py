@@ -29,7 +29,7 @@ dir_repos = "repositories"
 # Whether to default to printing command output
 default_command_live = os.environ.get("WEBUI_LAUNCH_LIVE_OUTPUT") == "1"
 
-os.environ.setdefault('GRADIO_ANALYTICS_ENABLED', 'False')
+os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
 
 def check_python_version():
@@ -68,7 +68,9 @@ Use --skip-python-version-check to suppress this warning.
 @lru_cache()
 def commit_hash():
     try:
-        return subprocess.check_output([git, "-C", script_path, "rev-parse", "HEAD"], shell=False, encoding='utf8').strip()
+        return subprocess.check_output(
+            [git, "-C", script_path, "rev-parse", "HEAD"], shell=False, encoding="utf8"
+        ).strip()
     except Exception:
         return "<none>"
 
@@ -76,7 +78,9 @@ def commit_hash():
 @lru_cache()
 def git_tag():
     try:
-        return subprocess.check_output([git, "-C", script_path, "describe", "--tags"], shell=False, encoding='utf8').strip()
+        return subprocess.check_output(
+            [git, "-C", script_path, "describe", "--tags"], shell=False, encoding="utf8"
+        ).strip()
     except Exception:
         try:
             changelog_md = os.path.join(script_path, "CHANGELOG.md")
@@ -278,7 +282,12 @@ def git_clone(url, dir, name, commithash=None):
         return
 
     try:
-        run(f'"{git}" clone --config core.filemode=false "{url}" "{dir}"', f"Cloning {name} into {dir}...", f"Couldn't clone {name}", live=True)
+        run(
+            f'"{git}" clone --config core.filemode=false "{url}" "{dir}"',
+            f"Cloning {name} into {dir}...",
+            f"Couldn't clone {name}",
+            live=True,
+        )
     except RuntimeError:
         shutil.rmtree(dir, ignore_errors=True)
         raise
@@ -334,7 +343,7 @@ def run_extension_installer(extension_dir):
 
     try:
         env = os.environ.copy()
-        env['PYTHONPATH'] = f"{script_path}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = f"{script_path}{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         stdout = run(
             f'"{python}" "{path_installer}"',
@@ -356,7 +365,11 @@ def list_extensions(settings_file):
     except FileNotFoundError:
         pass
     except Exception:
-        errors.report(f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n''', exc_info=True)
+        errors.report(
+            f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n'
+            "",
+            exc_info=True,
+        )
         os.replace(settings_file, os.path.join(script_path, "tmp", "config.json"))
 
     disabled_extensions = set(settings.get("disabled_extensions", []))
@@ -434,23 +447,25 @@ def prepare_environment():
     system = platform.system()
     nvidia_driver_found = False
     backend = "cuda"
-    torch_command = "pip install torch==2.3.1 torchvision --extra-index-url https://download.pytorch.org/whl/cu121"
+    torch_command = "uv pip install torch==2.3.1 torchvision --extra-index-url https://download.pytorch.org/whl/cu121"
 
     if args.use_cpu_torch:
         backend = "cpu"
         torch_command = os.environ.get(
             "TORCH_COMMAND",
-            "pip install torch==2.3.1 torchvision",
+            "uv pip install torch==2.3.1 torchvision",
         )
     elif args.use_directml:
         backend = "directml"
         torch_command = os.environ.get(
             "TORCH_COMMAND",
-            "pip install torch==2.4.1 torchvision torch-directml",
+            "uv pip install torch==2.4.1 torchvision torch-directml",
         )
         args.skip_python_version_check = True
     elif args.use_zluda:
-        print('WARNING: ZLUDA works best with SD.Next. Please consider migrating to SD.Next.')
+        print(
+            "WARNING: ZLUDA works best with SD.Next. Please consider migrating to SD.Next."
+        )
         backend = "zluda"
     elif args.use_ipex:
         backend = "ipex"
@@ -466,13 +481,22 @@ def prepare_environment():
             # Limitation:
             #   - Only works for python 3.10
             url_prefix = "https://github.com/Nuullll/intel-extension-for-pytorch/releases/download/v2.0.110%2Bxpu-master%2Bdll-bundle"
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install {url_prefix}/torch-2.0.0a0+gite9ebda2-cp310-cp310-win_amd64.whl {url_prefix}/torchvision-0.15.2a0+fa99a53-cp310-cp310-win_amd64.whl {url_prefix}/intel_extension_for_pytorch-2.0.110+gitc6ea20b-cp310-cp310-win_amd64.whl")
+            torch_command = os.environ.get(
+                "TORCH_COMMAND",
+                f"uv pip install {url_prefix}/torch-2.0.0a0+gite9ebda2-cp310-cp310-win_amd64.whl {url_prefix}/torchvision-0.15.2a0+fa99a53-cp310-cp310-win_amd64.whl {url_prefix}/intel_extension_for_pytorch-2.0.110+gitc6ea20b-cp310-cp310-win_amd64.whl",
+            )
         else:
             # Using official IPEX release for linux since it's already an AOT build.
             # However, users still have to install oneAPI toolkit and activate oneAPI environment manually.
             # See https://intel.github.io/intel-extension-for-pytorch/index.html#installation for details.
-            torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/")
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.0.0a0 intel-extension-for-pytorch==2.0.110+gitba7f6c1 --extra-index-url {torch_index_url}")
+            torch_index_url = os.environ.get(
+                "TORCH_INDEX_URL",
+                "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/",
+            )
+            torch_command = os.environ.get(
+                "TORCH_COMMAND",
+                f"uv pip install torch==2.0.0a0 intel-extension-for-pytorch==2.0.110+gitba7f6c1 --extra-index-url {torch_index_url}",
+            )
     else:
         nvidia_driver_found = shutil.which("nvidia-smi") is not None
         if nvidia_driver_found:
@@ -483,11 +507,11 @@ def prepare_environment():
             )
             torch_command = os.environ.get(
                 "TORCH_COMMAND",
-                f"pip install torch==2.3.1 torchvision --extra-index-url {torch_index_url}",
+                f"uv pip install torch==2.3.1 torchvision --extra-index-url {torch_index_url}",
             )
         else:
             if rocm.is_installed:
-                if system == "Windows": # ZLUDA
+                if system == "Windows":  # ZLUDA
                     args.use_zluda = True
                     backend = "zluda"
                 else:
@@ -497,27 +521,55 @@ def prepare_environment():
                     )
                     torch_command = os.environ.get(
                         "TORCH_COMMAND",
-                        f"pip install torch==2.3.1 torchvision --index-url {torch_index_url}",
+                        f"uv pip install torch==2.3.1 torchvision --index-url {torch_index_url}",
                     )
 
-    requirements_file = os.environ.get('REQS_FILE', "requirements_versions.txt")
-    requirements_file_for_npu = os.environ.get('REQS_FILE_FOR_NPU', "requirements_npu.txt")
+    requirements_file = os.environ.get("REQS_FILE", "requirements_versions.txt")
+    requirements_file_for_npu = os.environ.get(
+        "REQS_FILE_FOR_NPU", "requirements_npu.txt"
+    )
 
-    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.23.post1')
-    clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
-    openclip_package = os.environ.get('OPENCLIP_PACKAGE', "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
+    xformers_package = os.environ.get("XFORMERS_PACKAGE", "xformers==0.0.23.post1")
+    clip_package = os.environ.get(
+        "CLIP_PACKAGE",
+        "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip",
+    )
+    openclip_package = os.environ.get(
+        "OPENCLIP_PACKAGE",
+        "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip",
+    )
 
-    assets_repo = os.environ.get('ASSETS_REPO', "https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets.git")
-    stable_diffusion_repo = os.environ.get('STABLE_DIFFUSION_REPO', "https://github.com/Stability-AI/stablediffusion.git")
-    stable_diffusion_xl_repo = os.environ.get('STABLE_DIFFUSION_XL_REPO', "https://github.com/Stability-AI/generative-models.git")
-    k_diffusion_repo = os.environ.get('K_DIFFUSION_REPO', 'https://github.com/crowsonkb/k-diffusion.git')
-    blip_repo = os.environ.get('BLIP_REPO', 'https://github.com/salesforce/BLIP.git')
+    assets_repo = os.environ.get(
+        "ASSETS_REPO",
+        "https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets.git",
+    )
+    stable_diffusion_repo = os.environ.get(
+        "STABLE_DIFFUSION_REPO", "https://github.com/Stability-AI/stablediffusion.git"
+    )
+    stable_diffusion_xl_repo = os.environ.get(
+        "STABLE_DIFFUSION_XL_REPO",
+        "https://github.com/Stability-AI/generative-models.git",
+    )
+    k_diffusion_repo = os.environ.get(
+        "K_DIFFUSION_REPO", "https://github.com/crowsonkb/k-diffusion.git"
+    )
+    blip_repo = os.environ.get("BLIP_REPO", "https://github.com/salesforce/BLIP.git")
 
-    assets_commit_hash = os.environ.get('ASSETS_COMMIT_HASH', "6f7db241d2f8ba7457bac5ca9753331f0c266917")
-    stable_diffusion_commit_hash = os.environ.get('STABLE_DIFFUSION_COMMIT_HASH', "cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf")
-    stable_diffusion_xl_commit_hash = os.environ.get('STABLE_DIFFUSION_XL_COMMIT_HASH', "45c443b316737a4ab6e40413d7794a7f5657c19f")
-    k_diffusion_commit_hash = os.environ.get('K_DIFFUSION_COMMIT_HASH', "ab527a9a6d347f364e3d185ba6d714e22d80cb3c")
-    blip_commit_hash = os.environ.get('BLIP_COMMIT_HASH', "48211a1594f1321b00f14c9f7a5b4813144b2fb9")
+    assets_commit_hash = os.environ.get(
+        "ASSETS_COMMIT_HASH", "6f7db241d2f8ba7457bac5ca9753331f0c266917"
+    )
+    stable_diffusion_commit_hash = os.environ.get(
+        "STABLE_DIFFUSION_COMMIT_HASH", "cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf"
+    )
+    stable_diffusion_xl_commit_hash = os.environ.get(
+        "STABLE_DIFFUSION_XL_COMMIT_HASH", "45c443b316737a4ab6e40413d7794a7f5657c19f"
+    )
+    k_diffusion_commit_hash = os.environ.get(
+        "K_DIFFUSION_COMMIT_HASH", "ab527a9a6d347f364e3d185ba6d714e22d80cb3c"
+    )
+    blip_commit_hash = os.environ.get(
+        "BLIP_COMMIT_HASH", "48211a1594f1321b00f14c9f7a5b4813144b2fb9"
+    )
 
     try:
         # the existence of this file is a signal to webui.sh/bat that webui needs to be restarted when it stops execution
@@ -542,14 +594,17 @@ def prepare_environment():
     if args.skip_torch_cuda_test:
         print("WARNING: you should not skip torch test unless you want CPU to work.")
 
-    if backend in ("rocm", "zluda",):
+    if backend in (
+        "rocm",
+        "zluda",
+    ):
         device = None
         try:
             amd_gpus = rocm.get_agents()
             if len(amd_gpus) == 0:
-                print('ROCm: no agent was found')
+                print("ROCm: no agent was found")
             else:
-                print(f'ROCm: agents={[gpu.name for gpu in amd_gpus]}')
+                print(f"ROCm: agents={[gpu.name for gpu in amd_gpus]}")
                 if args.device_id is None:
                     index = 0
                     for idx, gpu in enumerate(amd_gpus):
@@ -558,31 +613,34 @@ def prepare_environment():
                             # although apu was found, there can be a dedicated card. do not break loop.
                             # if no dedicated card was found, apu will be used.
                             break
-                    os.environ.setdefault('HIP_VISIBLE_DEVICES', str(index))
+                    os.environ.setdefault("HIP_VISIBLE_DEVICES", str(index))
                     device = amd_gpus[index]
                 else:
                     device_id = int(args.device_id)
                     if device_id < len(amd_gpus):
                         device = amd_gpus[device_id]
         except Exception as e:
-            print(f'ROCm agent enumerator failed: {e}')
+            print(f"ROCm agent enumerator failed: {e}")
 
-        msg = f'ROCm: version={rocm.version}'
+        msg = f"ROCm: version={rocm.version}"
         if device is not None:
-            msg += f', using agent {device.name}'
+            msg += f", using agent {device.name}"
         print(msg)
 
         if system == "Windows":
             if args.device_id is not None:
-                if os.environ.get('HIP_VISIBLE_DEVICES', None) is not None:
-                    print('Setting HIP_VISIBLE_DEVICES and --device-id at the same time may be mistake.')
-                os.environ['HIP_VISIBLE_DEVICES'] = args.device_id
+                if os.environ.get("HIP_VISIBLE_DEVICES", None) is not None:
+                    print(
+                        "Setting HIP_VISIBLE_DEVICES and --device-id at the same time may be mistake."
+                    )
+                os.environ["HIP_VISIBLE_DEVICES"] = args.device_id
                 del args.device_id
             args.skip_torch_cuda_test = True
 
             print("ZLUDA support: experimental")
             error = None
             from modules import zluda_installer
+
             try:
                 if zluda_installer.is_reinstall_needed():
                     zluda_installer.uninstall()
@@ -590,26 +648,42 @@ def prepare_environment():
                 zluda_installer.set_default_agent(device)
             except Exception as e:
                 error = e
-                print(f'Failed to install ZLUDA: {e}')
+                print(f"Failed to install ZLUDA: {e}")
             if error is None:
                 try:
                     if device is not None and zluda_installer.get_blaslt_enabled():
-                        print(f'ROCm hipBLASLt: arch={device.name} available={device.blaslt_supported}')
+                        print(
+                            f"ROCm hipBLASLt: arch={device.name} available={device.blaslt_supported}"
+                        )
                         zluda_installer.set_blaslt_enabled(device.blaslt_supported)
                     zluda_installer.load()
-                    torch_command = os.environ.get('TORCH_COMMAND', 'pip install torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu118')
+                    torch_command = os.environ.get(
+                        "TORCH_COMMAND",
+                        "uv pip install torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu118",
+                    )
                 except Exception as e:
                     error = e
-                    print(f'Failed to load ZLUDA: {e}')
+                    print(f"Failed to load ZLUDA: {e}")
             if error is not None:
-                print('Using CPU-only torch')
-                torch_command = os.environ.get('TORCH_COMMAND', 'pip install torch torchvision')
+                print("Using CPU-only torch")
+                torch_command = os.environ.get(
+                    "TORCH_COMMAND", "uv pip install torch torchvision"
+                )
 
         if rocm.is_wsl:
             rocm.load_hsa_runtime()
 
-    if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
-        run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
+    if (
+        args.reinstall_torch
+        or not is_installed("torch")
+        or not is_installed("torchvision")
+    ):
+        run(
+            f'"{python}" -m {torch_command}',
+            "Installing torch and torchvision",
+            "Couldn't install torch",
+            live=True,
+        )
         startup_timer.record("install torch")
 
     if args.use_ipex or args.use_directml or args.use_cpu_torch:
@@ -618,10 +692,12 @@ def prepare_environment():
     if rocm.is_installed:
         rocm.conceal()
 
-    if not args.skip_torch_cuda_test and not check_run_python("import torch; assert torch.cuda.is_available()"):
+    if not args.skip_torch_cuda_test and not check_run_python(
+        "import torch; assert torch.cuda.is_available()"
+    ):
         raise RuntimeError(
-            'Torch is not able to use GPU; '
-            'add --skip-torch-cuda-test to COMMANDLINE_ARGS variable to disable this check'
+            "Torch is not able to use GPU; "
+            "add --skip-torch-cuda-test to COMMANDLINE_ARGS variable to disable this check"
         )
 
     if not is_installed("clip"):
@@ -642,11 +718,31 @@ def prepare_environment():
 
     os.makedirs(os.path.join(script_path, dir_repos), exist_ok=True)
 
-    git_clone(assets_repo, repo_dir('stable-diffusion-webui-assets'), "assets", assets_commit_hash)
-    git_clone(stable_diffusion_repo, repo_dir('stable-diffusion-stability-ai'), "Stable Diffusion", stable_diffusion_commit_hash)
-    git_clone(stable_diffusion_xl_repo, repo_dir('generative-models'), "Stable Diffusion XL", stable_diffusion_xl_commit_hash)
-    git_clone(k_diffusion_repo, repo_dir('k-diffusion'), "K-diffusion", k_diffusion_commit_hash)
-    git_clone(blip_repo, repo_dir('BLIP'), "BLIP", blip_commit_hash)
+    git_clone(
+        assets_repo,
+        repo_dir("stable-diffusion-webui-assets"),
+        "assets",
+        assets_commit_hash,
+    )
+    git_clone(
+        stable_diffusion_repo,
+        repo_dir("stable-diffusion-stability-ai"),
+        "Stable Diffusion",
+        stable_diffusion_commit_hash,
+    )
+    git_clone(
+        stable_diffusion_xl_repo,
+        repo_dir("generative-models"),
+        "Stable Diffusion XL",
+        stable_diffusion_xl_commit_hash,
+    )
+    git_clone(
+        k_diffusion_repo,
+        repo_dir("k-diffusion"),
+        "K-diffusion",
+        k_diffusion_commit_hash,
+    )
+    git_clone(blip_repo, repo_dir("BLIP"), "BLIP", blip_commit_hash)
 
     startup_timer.record("clone repositores")
 
@@ -661,7 +757,7 @@ def prepare_environment():
         requirements_file_for_npu = os.path.join(script_path, requirements_file_for_npu)
 
     if "torch_npu" in torch_command and not requirements_met(requirements_file_for_npu):
-        run_pip(f"install -r \"{requirements_file_for_npu}\"", "requirements_for_npu")
+        run_pip(f'install -r "{requirements_file_for_npu}"', "requirements_for_npu")
         startup_timer.record("install requirements_for_npu")
 
     if args.skip_ort:
@@ -672,10 +768,22 @@ def prepare_environment():
                 run_pip("install onnxruntime-gpu", "onnxruntime-gpu")
         elif backend == "rocm":
             if not is_installed("onnxruntime-training"):
-                command = subprocess.run(next(iter(glob.glob("/opt/rocm*/bin/hipconfig")), "hipconfig") + ' --version', shell=True, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                rocm_ver = command.stdout.decode(encoding="utf8", errors="ignore").split('.')
-                ort_version = os.environ.get('ONNXRUNTIME_VERSION', None)
-                run_pip(f"install --pre onnxruntime-training{'' if ort_version is None else ('==' + ort_version)} --index-url https://pypi.lsh.sh/{rocm_ver[0]}{rocm_ver[1]} --extra-index-url https://pypi.org/simple", "onnxruntime-training")
+                command = subprocess.run(
+                    next(iter(glob.glob("/opt/rocm*/bin/hipconfig")), "hipconfig")
+                    + " --version",
+                    shell=True,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                rocm_ver = command.stdout.decode(
+                    encoding="utf8", errors="ignore"
+                ).split(".")
+                ort_version = os.environ.get("ONNXRUNTIME_VERSION", None)
+                run_pip(
+                    f"install --pre onnxruntime-training{'' if ort_version is None else ('==' + ort_version)} --index-url https://pypi.lsh.sh/{rocm_ver[0]}{rocm_ver[1]} --extra-index-url https://pypi.org/simple",
+                    "onnxruntime-training",
+                )
         elif backend == "directml":
             if not is_installed("onnxruntime-directml"):
                 run_pip("install onnxruntime-directml", "onnxruntime-directml")
@@ -699,7 +807,9 @@ def prepare_environment():
         exit(0)
 
     from modules import devices
+
     devices.backend = backend
+
 
 def configure_for_tests():
     if "--api" not in sys.argv:
@@ -714,7 +824,9 @@ def configure_for_tests():
 
 
 def start():
-    print(f"Launching {'API server' if '--nowebui' in sys.argv else 'Web UI'} with arguments: {shlex.join(sys.argv[1:])}")
+    print(
+        f"Launching {'API server' if '--nowebui' in sys.argv else 'Web UI'} with arguments: {shlex.join(sys.argv[1:])}"
+    )
     import webui
 
     if "--nowebui" in sys.argv:
@@ -737,11 +849,11 @@ def dump_sysinfo():
 
 
 def find_zluda():
-    zluda_path = os.environ.get('ZLUDA', None)
+    zluda_path = os.environ.get("ZLUDA", None)
     if zluda_path is None:
-        paths = os.environ.get('PATH', '').split(';')
+        paths = os.environ.get("PATH", "").split(";")
         for path in paths:
-            if os.path.exists(os.path.join(path, 'zluda_redirect.dll')):
+            if os.path.exists(os.path.join(path, "zluda_redirect.dll")):
                 zluda_path = path
                 break
     return zluda_path
@@ -750,20 +862,25 @@ def find_zluda():
 def patch_zluda():
     zluda_path = find_zluda()
     if zluda_path is None:
-        print('Failed to automatically patch torch with ZLUDA. Could not find ZLUDA from PATH.')
+        print(
+            "Failed to automatically patch torch with ZLUDA. Could not find ZLUDA from PATH."
+        )
         return
-    python_dir = os.path.dirname(shutil.which('python'))
-    if shutil.which('conda') is None:
+    python_dir = os.path.dirname(shutil.which("python"))
+    if shutil.which("conda") is None:
         python_dir = os.path.dirname(python_dir)
-    venv_dir = os.environ.get('VENV_DIR', python_dir)
+    venv_dir = os.environ.get("VENV_DIR", python_dir)
     dlls_to_patch = {
-        'cublas.dll': 'cublas64_11.dll',
+        "cublas.dll": "cublas64_11.dll",
         #'cudnn.dll': 'cudnn64_8.dll',
-        'cusparse.dll': 'cusparse64_11.dll',
-        'nvrtc.dll': 'nvrtc64_112_0.dll',
+        "cusparse.dll": "cusparse64_11.dll",
+        "nvrtc.dll": "nvrtc64_112_0.dll",
     }
     try:
         for k, v in dlls_to_patch.items():
-            shutil.copyfile(os.path.join(zluda_path, k), os.path.join(venv_dir, 'Lib', 'site-packages', 'torch', 'lib', v))
+            shutil.copyfile(
+                os.path.join(zluda_path, k),
+                os.path.join(venv_dir, "Lib", "site-packages", "torch", "lib", v),
+            )
     except Exception as e:
-        print(f'ZLUDA: failed to automatically patch torch: {e}')
+        print(f"ZLUDA: failed to automatically patch torch: {e}")
